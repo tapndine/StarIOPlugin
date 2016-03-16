@@ -43,7 +43,6 @@
       </feature>
     </config-file>
     <source-file src="src/ios/StarIO.framework" framework="true" />
-    <source-file src="src/ios/StarIO_Extension.framework" framework="true" />
     <source-file src="src/ios/StarIOPlugin.h" />
     <source-file src="src/ios/StarIOPlugin.m" />
     <source-file src="src/ios/StarIOPlugin_JS.h" />
