@@ -142,6 +142,13 @@ static NSString *dataCallbackId = nil;
 
         //TODO - run in background
         if ([portType isEqualToString:@"All"] || [portType isEqualToString:@"Bluetooth"]) {
+            NSArray *btPortInfoArray = [SMPort searchPrinter:@"BT:"];
+            for (PortInfo *p in btPortInfoArray) {
+                [info addObject:[self portInfoToDictionary:p]];
+            }
+        }
+
+				if ([portType isEqualToString:@"All"] || [portType isEqualToString:@"BluetoothLE"]) {
             NSArray *btPortInfoArray = [SMPort searchPrinter:@"BLE:"];
             for (PortInfo *p in btPortInfoArray) {
                 [info addObject:[self portInfoToDictionary:p]];
