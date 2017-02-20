@@ -99,3 +99,6 @@ window.plugins.starPrinter.openCashDrawer(name, function(error, result){
 ```
 
 [Demo application](https://github.com/InteractiveObject/StarIOPluginDemo)
+
+## License
+Copyright (c) 2016 [Interactive Object](https://www.interactive-object.com) . Licensed under the MIT license.
