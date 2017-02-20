@@ -1,0 +1,33 @@
+{
+  "name": "cordova-stario-plugin",
+  "version": "0.0.4",
+  "description": "pluging to use StarIO printer",
+  "cordova": {
+    "id": "fr.sellsy.startio",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/InteractiveObject/StarIOPlugin.git"
+  },
+  "keywords": [
+    "ecosystem:cordova",
+    "cordova-android",
+    "cordova-ios"
+  ],
+  "engines": [
+    {
+      "name": "cordova",
+      "version": ">=3.4.0"
+    }
+  ],
+  "author": "Interactive Object",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/InteractiveObject/StarIOPlugin/issues"
+  },
+  "homepage": "https://github.com/InteractiveObject/StarIOPlugin#readme"
+}
