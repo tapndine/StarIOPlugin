@@ -54,7 +54,8 @@ public class StarIOPlugin extends CordovaPlugin {
             String portSettings = getPortSettingsOption(portName);
             String receipt = args.getString(1);
 
-            return this.printReceipt(portName, portSettings, receipt, callbackContext);
+            this.printReceipt(portName, portSettings, receipt, callbackContext);
+            return true;
         }
     }
 
@@ -235,10 +236,10 @@ public class StarIOPlugin extends CordovaPlugin {
         list.add(new byte[] { 0x1b, 0x64, 0x02 }); // Cut
         list.add(new byte[]{0x07}); // Kick cash drawer
 
-        return sendCommand(context, portName, portSettings, list);
+        return sendCommand(context, portName, portSettings, list, callbackContext);
     }
 
-    private boolean sendCommand(Context context, String portName, String portSettings, ArrayList<byte[]> byteList) {
+    private boolean sendCommand(Context context, String portName, String portSettings, ArrayList<byte[]> byteList, CallbackContext callbackContext) {
         StarIOPort port = null;
         try {
 			/*
@@ -275,18 +276,23 @@ public class StarIOPlugin extends CordovaPlugin {
             status = port.endCheckedBlock();
 
             if (status.coverOpen == true) {
+                callbackContext.error("Cover open");
                 sendEvent("printerCoverOpen", null);
                 return false;
             } else if (status.receiptPaperEmpty == true) {
+                callbackContext.error("Empty paper");
                 sendEvent("printerPaperEmpty", null);
                 return false;
             } else if (status.offline == true) {
+                callbackContext.error("Printer offline");
                 sendEvent("printerOffline", null);
                 return false;
             }
+            callbackContext.success("Printed");
 
         } catch (StarIOPortException e) {
             sendEvent("printerImpossible", e.getMessage());
+            callbackContext.error(e.getMessage());
         } finally {
             if (port != null) {
                 try {
