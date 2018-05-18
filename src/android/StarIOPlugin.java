@@ -14,6 +14,12 @@ import com.starmicronics.stario.PortInfo;
 import com.starmicronics.stario.StarIOPort;
 import com.starmicronics.stario.StarIOPortException;
 import com.starmicronics.stario.StarPrinterStatus;
+import com.starmicronics.starioextension.StarIoExt;
+import com.starmicronics.starioextension.StarIoExt.Emulation;
+import com.starmicronics.starioextension.ICommandBuilder;
+import com.starmicronics.starioextension.ICommandBuilder.CutPaperAction;
+import com.starmicronics.starioextension.ICommandBuilder.AlignmentPosition;
+import com.starmicronics.starioextension.ICommandBuilder.CodePageType;
 
 import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
@@ -22,6 +28,15 @@ import org.json.JSONObject;
 
 import android.content.Context;
 import android.util.Log;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.text.StaticLayout;
+import android.graphics.Rect;
+import android.text.TextPaint;
+import android.text.Layout;
 
 
 /**
@@ -167,7 +182,6 @@ public class StarIOPlugin extends CordovaPlugin {
         }
         if (interfaceName.equals("LAN") || interfaceName.equals("All")) {
             TCPPortList = StarIOPort.searchPrinter("TCP:");
-
             for (PortInfo portInfo : TCPPortList) {
                 arrayDiscovery.add(portInfo);
             }
@@ -224,28 +238,56 @@ public class StarIOPlugin extends CordovaPlugin {
         return portSettings;
     }
 
+    public byte[] createReceipt(Emulation emulation, String receiptText) {
+        ICommandBuilder builder = StarIoExt.createCommandBuilder(emulation);
+        String textToPrint = receiptText;
+
+        int textSize = 25;
+        Typeface typeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL);
+
+        Paint paint = new Paint();
+        Bitmap bitmap;
+        Canvas canvas;
+
+        paint.setTextSize(textSize);
+        paint.setTypeface(typeface);
+
+        paint.getTextBounds(textToPrint, 0, textToPrint.length(), new Rect());
+
+        TextPaint textPaint = new TextPaint(paint);
+        // 576 for width
+        StaticLayout staticLayout = new StaticLayout(textToPrint, textPaint, 576, Layout.Alignment.ALIGN_NORMAL, 1, 0, false);
+
+        // Create bitmap
+        bitmap = Bitmap.createBitmap(staticLayout.getWidth(), staticLayout.getHeight(), Bitmap.Config.ARGB_8888);
+
+        // Create canvas
+        canvas = new Canvas(bitmap);
+        canvas.drawColor(Color.WHITE);
+        canvas.translate(0, 0);
+        staticLayout.draw(canvas);
+
+        builder.beginDocument();
+        builder.appendBitmap(bitmap, false);
+        builder.appendCutPaper(CutPaperAction.PartialCutWithFeed);
+        builder.endDocument();
+        return builder.getCommands();
+    }
+
 
     private boolean printReceipt(String portName, String portSettings, String receipt, CallbackContext callbackContext) throws JSONException {
 
         Context context = this.cordova.getActivity();
-
-
-        ArrayList<byte[]> list = new ArrayList<byte[]>();
-        list.add(new byte[] { 0x1b, 0x1d, 0x74, (byte)0x80 });
-        list.add(createCpUTF8(receipt));
-        list.add(new byte[] { 0x1b, 0x64, 0x02 }); // Cut
-        list.add(new byte[]{0x07}); // Kick cash drawer
-
-        return sendCommand(context, portName, portSettings, list, callbackContext);
+        return sendCommand(context, portName, portSettings, receipt, callbackContext);
     }
 
-    private boolean sendCommand(Context context, String portName, String portSettings, ArrayList<byte[]> byteList, CallbackContext callbackContext) {
+    private boolean sendCommand(Context context, String portName, String portSettings, String receipt, CallbackContext callbackContext) {
         StarIOPort port = null;
         try {
 			/*
 			 * using StarIOPort3.1.jar (support USB Port) Android OS Version: upper 2.2
 			 */
-            port = StarIOPort.getPort(portName, portSettings, 10000, context);
+            port = StarIOPort.getPort(portName, portSettings, 30000, context);
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
@@ -268,8 +310,8 @@ public class StarIOPlugin extends CordovaPlugin {
                 sendEvent("printerOffline", null);
                 return false;
             }
-
-            byte[] commandToSendToPrinter = convertFromListByteArrayTobyteArray(byteList);
+            Emulation em = Emulation.StarGraphic;
+            byte[] commandToSendToPrinter = createReceipt(em, receipt);
             port.writePort(commandToSendToPrinter, 0, commandToSendToPrinter.length);
 
             port.setEndCheckedBlockTimeoutMillis(30000);// Change the timeout time of endCheckedBlock method.
@@ -279,11 +321,11 @@ public class StarIOPlugin extends CordovaPlugin {
                 callbackContext.error("Cover open");
                 sendEvent("printerCoverOpen", null);
                 return false;
-            } else if (status.receiptPaperEmpty == true) {
+            } if (status.receiptPaperEmpty == true) {
                 callbackContext.error("Empty paper");
                 sendEvent("printerPaperEmpty", null);
                 return false;
-            } else if (status.offline == true) {
+            } if (status.offline == true) {
                 callbackContext.error("Printer offline");
                 sendEvent("printerOffline", null);
                 return false;
